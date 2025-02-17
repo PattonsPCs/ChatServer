@@ -18,9 +18,13 @@ public class Client {
         System.out.println("Client: " + clientSocket.getInetAddress().toString() + " starting up...");
         System.out.println("Connected to the server!");
 
+
+        ChatRunnable chatRunnable = new ChatRunnable(clientSocket);
+        Thread thread = new Thread(chatRunnable);
+        thread.start();
+
         Scanner clientMessageInput = new Scanner(System.in);
         PrintWriter out = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()), true);
-        BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
         while(clientSocket.isConnected()){
             System.out.println("Enter a message to send to the server: ");
@@ -33,8 +37,6 @@ public class Client {
                 clientSocket.close();
             }else{
                 out.println(clientMessage);
-                String serverResponse = in.readLine();
-                System.out.println("Server said: " + serverResponse);
             }
 
         }

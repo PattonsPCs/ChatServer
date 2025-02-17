@@ -38,7 +38,7 @@ public class Server {
                                 removeClient(this.connection);
                                 break;
                             }
-                            System.out.println("Received: " + message);
+                            System.out.println("Received: " + message + " from " + this.connection.getInetAddress().toString());
                             for(Socket client : connectedClients){
                                 broadcast(client, message);
                             }

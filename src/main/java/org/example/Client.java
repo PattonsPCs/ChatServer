@@ -17,14 +17,14 @@ public class Client {
         Socket clientSocket = new Socket(this.host, this.port);
         System.out.println("Client: " + clientSocket.getInetAddress().toString() + " starting up...");
         System.out.println("Connected to the server!");
-        Scanner clientMessageInput = new Scanner(System.in);
-        BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-        PrintWriter out = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()), true);
-        while(clientSocket.isConnected()){
 
+        Scanner clientMessageInput = new Scanner(System.in);
+        PrintWriter out = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()), true);
+        BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+
+        while(clientSocket.isConnected()){
             System.out.println("Enter a message to send to the server: ");
             String clientMessage = clientMessageInput.nextLine();
-
             if(clientMessage.equalsIgnoreCase("/quit")){
                 System.out.println("Shutting down...");
                 clientSocket.close();
@@ -33,10 +33,9 @@ public class Client {
                 clientSocket.close();
             }else{
                 out.println(clientMessage);
+                String serverResponse = in.readLine();
+                System.out.println("Server said: " + serverResponse);
             }
-
-            String response = in.readLine();
-            System.out.println("Server said: " + response);
 
         }
         clientSocket.close();

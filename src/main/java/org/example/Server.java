@@ -7,38 +7,45 @@ import java.util.ArrayList;
 
 public class Server {
     final private int port;
-    private ArrayList<String> connectedClients;
-    private ChatServer chatServer;
+    final private ArrayList<Socket> connectedClients;
+    private Socket connection;
     // We already made the server socket, but the issue is that IO Exception is thrown.
     // We need to handle this exception.
     // We could use a try-catch, but let's try putting it in a method.
     public Server(){
         this.port = 12345;
         this.connectedClients = new ArrayList<>();
-        this.chatServer = new ChatServer(this.port);
+        this.connection = new Socket();
     }
+
+
 
     public void clientHandler() throws IOException{
         try(ServerSocket serverSocket = new ServerSocket(this.port)){
-            System.out.println("Server is starting...");
-            System.out.println("Server started on port: " + this.port);
+            System.out.println("Chat Server is starting...");
+            System.out.println("Chat Server started on port: " + this.port);
 
             while(true){
-                Socket connection = serverSocket.accept();
-                chatServer.addClient(connection);
-                System.out.println("Client: " + connection.getInetAddress().toString() + " has joined!");
+                this.connection = serverSocket.accept();
+                addClient(this.connection);
+                System.out.println("Client: " + this.connection.getInetAddress().toString() + " has joined!");
                 Thread clientThread = new Thread(() ->{
-                    try(BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))){
+                    try(BufferedReader in = new BufferedReader(new InputStreamReader(this.connection.getInputStream()))){
                         String message;
                         while((message = in.readLine()) != null){
+                            if(message.equalsIgnoreCase("/quit")){
+                                System.out.println("Client: " + this.connection.getInetAddress().toString() + " requested to close the connection...");
+                                removeClient(this.connection);
+                                break;
+                            }
                             System.out.println("Received: " + message);
-                            chatServer.broadCast(message);
+                            for(Socket client : connectedClients){
+                                broadcast(client, message);
+                            }
                         }
                     }  catch (IOException e){
                         System.out.println("Error: " + e.getMessage());
                         e.printStackTrace();
-                    } finally{
-                        chatServer.removeClient(connection);
                     }
                 });
                 clientThread.start();
@@ -51,6 +58,19 @@ public class Server {
 
     public void startServer() throws IOException{
         clientHandler();
+    }
+
+    public void addClient(Socket connection){
+        this.connectedClients.add(connection);
+    }
+
+    public void removeClient(Socket connection){
+        this.connectedClients.remove(connection);
+    }
+
+    public void broadcast(Socket client, String message) throws IOException {
+        PrintWriter out = new PrintWriter(new OutputStreamWriter(client.getOutputStream()), true);
+        out.println(client.getInetAddress().toString() + ": " + message);
     }
 
     public static void main(String[] args) throws IOException{

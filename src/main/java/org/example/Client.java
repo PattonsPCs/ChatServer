@@ -1,4 +1,8 @@
 package org.example;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.net.Socket;
 import java.util.Scanner;
@@ -6,7 +10,7 @@ import java.util.Scanner;
 public class Client {
     final private String host;
     final private int port;
-
+    private final static Logger logger = LoggerFactory.getLogger(Client.class);
 
     public Client(){
         this.host = "localhost";
@@ -45,11 +49,15 @@ public class Client {
 
 
 
-    public void startClient() throws IOException{
-        clientFunctionality();
+    public void startClient(){
+        try{
+            clientFunctionality();
+        } catch (IOException e){
+            logger.error("Error starting client: {}", e.getMessage(), e);
+        }
     }
 
-    public static void main(String[] args) throws IOException{
+    public static void main(String[] args){
         Client client = new Client();
         client.startClient();
     }

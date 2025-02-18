@@ -1,4 +1,8 @@
 package org.example;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -7,6 +11,7 @@ import java.net.Socket;
 public class ChatRunnable implements Runnable {
 
     final private Socket connectionSocket;
+    private static final Logger logger = LoggerFactory.getLogger(ChatRunnable.class);
 
     public ChatRunnable(Socket connectionSocket){
         this.connectionSocket = connectionSocket;
@@ -21,7 +26,7 @@ public class ChatRunnable implements Runnable {
                 System.out.println(message);
 
             }        } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("Error reading message: {}", e.getMessage(), e);
         }
     }
 

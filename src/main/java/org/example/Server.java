@@ -9,24 +9,26 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 
 public class Server {
     private static final Logger logger = LoggerFactory.getLogger(Server.class);
     final private int port;
-    final private List<Socket> synchronizedList;
-    private Socket connection;
-    private boolean loopFlag;
+    private final AtomicInteger clientIdCounter;
+    final private List<ClientHandler> synchronizedList;
+    private final AtomicBoolean loopFlag;
     // We already made the server socket, but the issue is that IO Exception is thrown.
     // We need to handle this exception.
     // We could use a try-catch, but let's try putting it in a method.
     public Server(){
         this.port = 12345;
-        List<Socket> connectedClients = new ArrayList<>();
+        List<ClientHandler> connectedClients = new ArrayList<>();
         this.synchronizedList = Collections.synchronizedList(connectedClients);
-        this.loopFlag = true;
+        this.loopFlag = new AtomicBoolean(true);
+        this.clientIdCounter = new AtomicInteger(0);
     }
 
 
@@ -36,31 +38,13 @@ public class Server {
             System.out.println("Chat Server is starting...");
             System.out.println("Chat Server started on port: " + this.port);
 
-            while(loopFlag){
-                connection = serverSocket.accept();
-                addClient(connection);
-                System.out.println("Client: " + connection.getInetAddress().toString() + " has joined!");
-                Thread clientThread = new Thread(() ->{
-                    try(BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))){
-                        String message;
-                        while((message = in.readLine()) != null){
-                            if(message.equalsIgnoreCase("/quit")){
-                                System.out.println("Client: " + connection.getInetAddress().toString() + " requested to close the connection...");
-                                removeClient(connection);
-                                loopFlag = false;
-                                break;
-                            }
-                            System.out.println("Received: " + message + " from " + connection.getInetAddress().toString());
-                            for(Socket client : synchronizedList){
-                                if(!client.equals(connection)){
-                                    broadcast(client, message);
-                                }
-                            }
-                        }
-                    }  catch (IOException e){
-                        logger.error("Error: {}", e.getMessage(), e);
-                    }
-                });
+            while(loopFlag.get()){
+                Socket connection = serverSocket.accept();
+                int clientId = clientIdCounter.incrementAndGet();
+                ClientHandler clientHandler = new ClientHandler(connection, clientId);
+                addClient(clientHandler);
+                System.out.println("Client " + clientId + " has joined!");
+                Thread clientThread = new Thread(clientHandler);
                 clientThread.start();
             }
         }
@@ -77,22 +61,63 @@ public class Server {
        }
     }
 
-    public void addClient(Socket connection){
-        synchronizedList.add(connection);
+    public void addClient(ClientHandler clientHandler){
+        synchronizedList.add(clientHandler);
     }
 
-    public void removeClient(Socket connection){
-        synchronizedList.remove(connection);
+    public void removeClient(ClientHandler clientHandler){
+        synchronizedList.remove(clientHandler);
     }
 
-    public void broadcast(Socket client, String message) throws IOException {
-        PrintWriter out = new PrintWriter(new OutputStreamWriter(client.getOutputStream()), true);
-        out.println(client.getInetAddress().toString() + ": " + message);
+    public void broadcast(ClientHandler sender, String message) throws IOException {
+        for(ClientHandler client : synchronizedList){
+            if(!client.equals(sender)){
+                client.sendMessage("Client " + sender.getClientId() + ": " + message);
+            }
+        }
     }
+
 
     public static void main(String[] args){
         Server server = new Server();
         server.startServer();
+    }
+
+    public class ClientHandler implements Runnable{
+        private final Socket connection;
+        private final int clientId;
+        public ClientHandler(Socket connection, int clientId){
+            this.connection = connection;
+            this.clientId = clientId;
+        }
+
+        public int getClientId() {
+            return clientId;
+        }
+
+        @Override
+        public void run(){
+            try(BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                String message;
+                while((message = in.readLine()) != null){
+                    if(message.equalsIgnoreCase("/quit")){
+                        System.out.println("Client " + clientId + " requested to close the connection...");
+                        removeClient(this);
+                        connection.close();
+                        break;
+                    }
+                    System.out.println("Received " + message + " from Client " + clientId);
+                    broadcast(this, message);
+                }
+            } catch (IOException e){
+                logger.error("Error: {}", e.getMessage(), e);
+            }
+        }
+
+        public void sendMessage(String message) throws IOException{
+            PrintWriter out = new PrintWriter(new OutputStreamWriter(connection.getOutputStream()), true);
+            out.println(message);
+        }
     }
 
 }

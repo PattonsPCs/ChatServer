@@ -39,7 +39,6 @@ public class Client {
                 break;
             }else if(clientMessage.isEmpty()){
                 System.out.println("Bro ain't write anything \uD83D\uDC80 \uD83D\uDC80 \uD83D\uDC80");
-                break;
             }else{
                 out.println(clientMessage);
             }

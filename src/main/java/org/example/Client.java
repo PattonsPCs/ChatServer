@@ -36,9 +36,10 @@ public class Client {
             if(clientMessage.equalsIgnoreCase("/quit")){
                 System.out.println("Shutting down...");
                 clientSocket.close();
+                break;
             }else if(clientMessage.isEmpty()){
-                System.out.println("Client did not respond. Shutting down...");
-                clientSocket.close();
+                System.out.println("Bro ain't write anything \uD83D\uDC80 \uD83D\uDC80 \uD83D\uDC80");
+                break;
             }else{
                 out.println(clientMessage);
             }

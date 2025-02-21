@@ -28,7 +28,6 @@ public class ChatRunnable implements Runnable {
 
             }
         }catch (SocketException e){
-            logger.error("Client disconnected: {}", e.getMessage());
             System.out.println("Cya nerd\uD83D\uDC80");
         } catch (IOException e) {
             logger.error("Error reading message: {}", e.getMessage(), e);
